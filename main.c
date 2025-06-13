@@ -8,6 +8,7 @@
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <math.h>
+#include <time.h>
 
 #define MAX_MATRIX_ROWS 10
 #define MAX_MATRIX_COLS 10
@@ -35,22 +36,25 @@ int** allocate_matrix() {
 	return matrix;
 }
 
-// Preenche a matriz com números aleatórios
-int ehPrimo(int n) 
-{
-	int limit;
-	if(limit = (int)sqrt((double)n))
-	{
-		for (int i = 1; i <= limit; i += 2) {
-			if (n == 2) return 1;
-			if (n % i == 0) return 0;
-		}
-	}
-	else {
+
+int ehPrimo(int number) {
+	// if the number is less than or equal to 1, it is not prime.
+	if (number <= 1) {
 		return 0;
 	}
-}
 
+	int square_root = (int)sqrt(number);
+	// Check for divisors from 2 to the square root of the number.
+	// If any divisor is found, the number is not prime.
+	for (int i = 2; i <= square_root; i++) {
+		if (number % i == 0) {
+			return 0;
+		}
+	}
+
+	// If no divisors are found, the number is prime.
+	return 1;
+}
 
 void insert_matrix(int** matrix) {
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
@@ -59,22 +63,34 @@ void insert_matrix(int** matrix) {
 			int numero = matrix[i][j];
 			// Descomente a linha abaixo para ver os valores
 			printf("%d ", matrix[i][j]);
-			if (ehPrimo(numero)==1)
-			{
-				int cont_primos = 0;
-				cont_primos++;
-			}
 		}
 		printf("\n"); // Para quebrar linha entre linhas da matriz
 	}
 }
 
 
+void serial_search(int** matrix) {
+	int cont_primos = 0;
+	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
+		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
+			if (ehPrimo(matrix[i][j]) == 1) {
+				printf(" antes: %d", cont_primos);
+				cont_primos++;
+				printf("\ndepois: %d", cont_primos);
+			}
+		}
+	}
+
+}
+
 int main(int argc, char* argv[]) {
 	srand(SEED); // Define a semente do gerador de números aleatórios
 
 	int** matrix = allocate_matrix();
 	insert_matrix(matrix);
+	serial_search(matrix);
+	
+
 
 	// Libera a memória alocada
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
