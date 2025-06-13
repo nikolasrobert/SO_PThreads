@@ -13,6 +13,8 @@
 #define MAX_MATRIX_ROWS 10
 #define MAX_MATRIX_COLS 10
 #define SEED 42
+#define MAX_ROWS_MACROBLOCK 100
+#define MAX_COLS_MACROBLOCK 100
 
 // Função para gerar número aleatório entre 0 e 31999
 int randint() {
@@ -62,24 +64,112 @@ void insert_matrix(int** matrix) {
 			matrix[i][j] = randint();
 			int numero = matrix[i][j];
 			// Descomente a linha abaixo para ver os valores
+			//printf("%d ", matrix[i][j]);
+		}
+		printf("\n"); // Para quebrar linha entre linhas da matriz
+	}
+}
+
+//adicione tempo na função de busca
+
+void serial_search(int** matrix) {
+	double serial_start_time = (double)clock() / CLOCKS_PER_SEC; // Inicia o cronômetro
+	int cont_primos = 0;
+	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
+		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
+			if (ehPrimo(matrix[i][j]) == 1) {
+				cont_primos++;
+			}
+		}
+	}
+	double serial_end_time = (double)clock() / CLOCKS_PER_SEC; // Para o cronômetro
+	printf("\n * * Matrix Size : %d x %d * *\n", MAX_MATRIX_COLS, MAX_MATRIX_ROWS);
+	printf("Busca serial concluida.\n");
+	printf("\nTempo de execucao serial: %.2f segundos\n", serial_end_time - serial_start_time);
+	printf("Total de numeros primos encontrados: %d\n", cont_primos);
+
+}
+
+void print_matrix(int** matrix)
+{
+	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
+		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
+			// Descomente a linha abaixo para ver os valores
 			printf("%d ", matrix[i][j]);
 		}
 		printf("\n"); // Para quebrar linha entre linhas da matriz
 	}
 }
 
+/* **********  MENU  ********** */
+void menu(int **matrix) {
+    int option;
+    
+    do {
+        printf("\n---------------- MENU -------------------\n");
+        printf("1. Print Matrix\n");
+        printf("2. Print Matrix's Blocks\n");
+        printf("3. Count Prime Numbers (Serial)\n");
+        printf("4. Count Prime Numbers (Parallel)\n");
+        printf("5. Calculate Speedup (Runs both counters)\n");
+        printf("0. Exit\n");
+        printf("-----------------------------------------\n");
 
-void serial_search(int** matrix) {
-	int cont_primos = 0;
-	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
-		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
-			if (ehPrimo(matrix[i][j]) == 1) {
-				printf(" antes: %d", cont_primos);
-				cont_primos++;
-				printf("\ndepois: %d", cont_primos);
-			}
-		}
-	}
+        if (scanf("%d", &option)) {
+            system("cls || clear");
+            printf("\n\n");
+        }
+        else {
+            printf("** Error: Invalid option!!! **\n**  Please enter a valid option **\n");
+            break;
+        }
+
+        switch (option)
+        {
+        case 1:
+            printf("** Printing the full matrix...         **\n");
+            printf("-----------------------------------------\n");
+		
+			printf("** Matrix filled with random numbers... **\n");
+			print_matrix(matrix);
+
+            break;
+
+        case 2:
+            printf("** Printing each block in matrix...    **\n");
+            printf("-----------------------------------------\n");
+
+
+            break;
+
+        case 3:
+            /* SERIAL PRIME COUNTING TEST */
+			serial_search(matrix);
+			printf("** Running Serial Count...             **\n");
+			printf("-----------------------------------------\n");
+			printf("** Run time: %.6f seconds          **\n", 0.0); // Placeholder for run time
+			break;
+		case 4:
+			/* PARALLEL PRIME COUNTING TEST */
+			printf("** Running Parallel Count...           **\n");
+			printf("-----------------------------------------\n");
+			printf("** Run time: %.6f seconds          **\n", 0.0); // Placeholder for run time
+			break;
+		case 5:
+			/* SPEEDUP CALCULATION TEST */
+			printf("** Calculating Speedup...              **\n");
+			printf("-----------------------------------------\n");
+			printf("** Running Serial Count...             **\n");
+            printf("-----------------------------------------\n");
+            //printf("** Run time: %.6f seconds          **\n");
+
+            break;
+
+       
+        default:
+            printf("** Error: Invalid option!!! **\n**  Please enter a valid option **\n");
+        }
+    } while (option);
 
 }
 
@@ -88,11 +178,10 @@ int main(int argc, char* argv[]) {
 
 	int** matrix = allocate_matrix();
 	insert_matrix(matrix);
-	serial_search(matrix);
 	
+	menu(matrix);	
 
-
-	// Libera a memória alocada
+	 //Libera a memória alocada
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
 		free(matrix[i]);
 	}
