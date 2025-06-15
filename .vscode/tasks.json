@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Serial",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-O2",
+        "${workspaceFolder}/busca.c",
+        "-o",
+        "${workspaceFolder}/busca_serial.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Build Paralelo",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-O2",
+        "-pthread",
+        "${workspaceFolder}/busca.c",
+        "-o",
+        "${workspaceFolder}/busca_paralela.exe"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
