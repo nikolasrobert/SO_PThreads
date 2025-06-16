@@ -1,10 +1,9 @@
-#pragma once 
 #define _CRT_SECURE_NO_WARNINGS 1  
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1 
 #pragma comment(lib,"pthreadVC2.lib") 
 #define HAVE_STRUCT_TIMESPEC 
 
-#include <pthread.h> 
+#include "pthread.h"
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <math.h>
@@ -264,8 +263,8 @@ void menu(int **matrix) {
 			printf("** Running Serial Count...             **\n");
             printf("-----------------------------------------\n");
 			double ts = serial_search(matrix);
-			double tp = parallel_search(threads);
-			printf("-> Speedup: %.2fx\n", ts/tp);
+			double tp_par = parallel_search(threads);
+			printf("-> Speedup: %.2fx\n", ts/tp_par);
             
 
             break;
