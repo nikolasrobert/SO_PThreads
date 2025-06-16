@@ -24,6 +24,8 @@
 #define N_THREADS  8        // número de threads padrão (será parâmetro em main)
 
 
+int **matrix;
+
 // Funcao para gerar numero aleatorio entre 0 e 31999
 int randint() {
 	return rand() % 32000;
@@ -72,9 +74,46 @@ int ehPrimo(int number) {
 		}
 	}
 
-	// If no divisors are found, the number is prime.
+	// se nao for encontrado divisores, é primo
 	return 1;
 }
+
+//funcao trabalho da thread
+void *thread_func(void *arg) {
+    while (1) {
+        pthread_mutex_lock(&mtx_block);
+        if (next_block >= total_blocks) {
+            pthread_mutex_unlock(&mtx_block);
+            break;
+        }
+        int blk = next_block++;
+        pthread_mutex_unlock(&mtx_block);
+
+        int br = blk / n_blocks_col;
+        int bc = blk % n_blocks_col;
+        int rs = br * BLOCK_H;
+        int cs = bc * BLOCK_W;
+        int re = rs + BLOCK_H;
+        int ce = cs + BLOCK_W;
+
+        if (re > MAX_MATRIX_ROWS) re = MAX_MATRIX_ROWS;
+		if (ce > MAX_MATRIX_COLS) ce = MAX_MATRIX_COLS;
+
+
+        long local_count = 0;
+        for (int i = rs; i < re; i++)
+            for (int j = cs; j < ce; j++)
+                if (ehPrimo(matrix[i][j]))
+                    local_count++;
+
+        pthread_mutex_lock(&mtx_count);
+        total_primos += local_count;
+        pthread_mutex_unlock(&mtx_count);
+    }
+    return NULL;
+}
+
+
 
 void insert_matrix(int** matrix) {
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
@@ -88,7 +127,7 @@ void insert_matrix(int** matrix) {
 	}
 }
 
-//adicione tempo na fun��o de busca
+//adicione tempo na funcao de busca
 
 void serial_search(int** matrix) {
 	double serial_start_time = (double)clock() / CLOCKS_PER_SEC; // Inicia o cron�metro
@@ -118,6 +157,7 @@ void print_matrix(int** matrix)
 		printf("\n"); // Para quebrar linha entre linhas da matriz
 	}
 }
+
 
 /* **********  MENU  ********** */
 void menu(int **matrix) {
@@ -193,25 +233,64 @@ void menu(int **matrix) {
 
 int main(int argc, char* argv[]) {
 	// variaveis paralelo
-	n_blocks_row = (N_ROWS + BLOCK_H - 1) / BLOCK_H;
-	n_blocks_col = (N_COLS + BLOCK_W - 1) / BLOCK_W;
+	n_blocks_row = (MAX_MATRIX_ROWS + BLOCK_H - 1) / BLOCK_H;
+	n_blocks_col = (MAX_MATRIX_COLS + BLOCK_W - 1) / BLOCK_W;
+
 	total_blocks = n_blocks_row * n_blocks_col;
 
 	pthread_mutex_init(&mtx_block, NULL);
 	pthread_mutex_init(&mtx_count, NULL);
 
-	srand(SEED); // Define a semente do gerador de n�meros aleat�rios
+	srand(SEED); // Define a semente do gerador de numeros aleatorios
 
-	int** matrix = allocate_matrix();
+	// alocar e preencher a matriz ANTES de iniciar as threads
+	matrix = allocate_matrix();
+	insert_matrix(matrix);
+
+	// criação e join das threads
+	int threads = N_THREADS;
+	if (argc >= 4) {
+		threads = atoi(argv[1]);
+		// (Opcional) pode atualizar BLOCK_H/W aqui se quiser ler de argv[2] e argv[3]
+	}
+
+	pthread_t tids[threads];
+	struct timespec t0, t1;
+
+	clock_gettime(CLOCK_MONOTONIC, &t0);
+
+	for (int t = 0; t < threads; t++) {
+		pthread_create(&tids[t], NULL, thread_func, NULL);
+	}
+	for (int t = 0; t < threads; t++) {
+		pthread_join(tids[t], NULL);
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &t1);
+	double tp = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+
+	printf("Paralelo: threads=%d, bloco=%dx%d → total_primos=%ld, tempo=%.6fs\n",
+		threads, BLOCK_H, BLOCK_W, total_primos, tp);
+
+
+
+
+	//alocar matrix
+	matrix = allocate_matrix();
 	insert_matrix(matrix);
 	
 	menu(matrix);	
 
-	 //Libera a mem�ria alocada
+	 //Libera a memoria alocada
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
 		free(matrix[i]);
 	}
 	free(matrix);
+
+	//destruir mutex
+	pthread_mutex_destroy(&mtx_block);
+	pthread_mutex_destroy(&mtx_count);
+
 
 	return 0;
 }
