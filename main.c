@@ -19,10 +19,11 @@
 
 
 //define paralelo
-#define BLOCK_H    100      // altura do macrobloco (ajuste nos testes)
-#define BLOCK_W    100      // largura do macrobloco
+int BLOCK_H = 100;      // altura do macrobloco (ajuste nos testes)
+int BLOCK_W = 100;      // largura do macrobloco
 #define N_THREADS  8        // número de threads padrão (será parâmetro em main)
 
+int threads  = N_THREADS; 
 
 int **matrix;
 
@@ -129,23 +130,64 @@ void insert_matrix(int** matrix) {
 
 //adicione tempo na funcao de busca
 
-void serial_search(int** matrix) {
-	double serial_start_time = (double)clock() / CLOCKS_PER_SEC; // Inicia o cron�metro
-	int cont_primos = 0;
-	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
-		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
-			if (ehPrimo(matrix[i][j]) == 1) {
-				cont_primos++;
-			}
-		}
-	}
-	double serial_end_time = (double)clock() / CLOCKS_PER_SEC; // Para o cron�metro
-	printf("\n * * Matrix Size : %d x %d * *\n", MAX_MATRIX_COLS, MAX_MATRIX_ROWS);
-	printf("Busca serial concluida.\n");
-	printf("\nTempo de execucao serial: %.2f segundos\n", serial_end_time - serial_start_time);
-	printf("Total de numeros primos encontrados: %d\n", cont_primos);
+// Realiza busca serial, imprime resultados e retorna o tempo em segundos
+double serial_search(int** matrix) {
+    double t0 = (double)clock() / CLOCKS_PER_SEC;
 
+    int cont_primos = 0;
+    for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
+        for (int j = 0; j < MAX_MATRIX_COLS; j++) {
+            if (ehPrimo(matrix[i][j])) {
+                cont_primos++;
+            }
+        }
+    }
+
+    double t1 = (double)clock() / CLOCKS_PER_SEC;
+    double elapsed = t1 - t0;
+
+    printf("\n * * Matrix Size : %d x %d * *\n", MAX_MATRIX_COLS, MAX_MATRIX_ROWS);
+    printf("Busca serial concluída.\n");
+    printf("Tempo de execução serial: %.6f segundos\n", elapsed);
+    printf("Total de números primos encontrados: %d\n", cont_primos);
+
+    return elapsed;
 }
+
+//Realiz busca paralela
+
+double parallel_search(int threads) {
+    next_block   = 0;
+    total_primos = 0;
+
+    pthread_mutex_init(&mtx_block, NULL);
+    pthread_mutex_init(&mtx_count, NULL);
+
+    struct timespec t0, t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+
+    pthread_t tids[threads];
+    for (int t = 0; t < threads; t++) {
+        pthread_create(&tids[t], NULL, thread_func, NULL);
+    }
+    for (int t = 0; t < threads; t++) {
+        pthread_join(tids[t], NULL);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    double tp = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+
+    pthread_mutex_destroy(&mtx_block);
+    pthread_mutex_destroy(&mtx_count);
+
+    printf("Parallel: threads=%d, bloco=%dx%d → primos=%ld, tempo=%.6fs\n",
+           threads, BLOCK_H, BLOCK_W, total_primos, tp);
+
+    return tp;
+}
+
+
+
 
 void print_matrix(int** matrix)
 {
@@ -201,17 +243,19 @@ void menu(int **matrix) {
             break;
 
         case 3:
-            /* SERIAL PRIME COUNTING TEST */
-			serial_search(matrix);
+            /* SERIAL COUNTING TEST */
 			printf("** Running Serial Count...             **\n");
 			printf("-----------------------------------------\n");
-			printf("** Run time: %.6f seconds          **\n", 0.0); // Placeholder for run time
+			double t = serial_search(matrix);
+      		printf("-> Tempo serial: %.6f s\n", t);
 			break;
+
 		case 4:
-			/* PARALLEL PRIME COUNTING TEST */
+			/* PARALLEL COUNTING TEST */
 			printf("** Running Parallel Count...           **\n");
 			printf("-----------------------------------------\n");
-			printf("** Run time: %.6f seconds          **\n", 0.0); // Placeholder for run time
+			double tp = parallel_search(threads);
+  			printf("-> Tempo paralelo: %.6f s\n", tp);
 			break;
 		case 5:
 			/* SPEEDUP CALCULATION TEST */
@@ -219,7 +263,10 @@ void menu(int **matrix) {
 			printf("-----------------------------------------\n");
 			printf("** Running Serial Count...             **\n");
             printf("-----------------------------------------\n");
-            //printf("** Run time: %.6f seconds          **\n");
+			double ts = serial_search(matrix);
+			double tp = parallel_search(threads);
+			printf("-> Speedup: %.2fx\n", ts/tp);
+            
 
             break;
 
@@ -232,6 +279,15 @@ void menu(int **matrix) {
 }
 
 int main(int argc, char* argv[]) {
+	
+	// criação e join das threads
+	
+	if (argc >= 4) {
+		threads  = atoi(argv[1]);
+		BLOCK_H  = atoi(argv[2]);
+		BLOCK_W  = atoi(argv[3]);
+	};
+	
 	// variaveis paralelo
 	n_blocks_row = (MAX_MATRIX_ROWS + BLOCK_H - 1) / BLOCK_H;
 	n_blocks_col = (MAX_MATRIX_COLS + BLOCK_W - 1) / BLOCK_W;
@@ -247,37 +303,8 @@ int main(int argc, char* argv[]) {
 	matrix = allocate_matrix();
 	insert_matrix(matrix);
 
-	// criação e join das threads
-	int threads = N_THREADS;
-	if (argc >= 4) {
-		threads = atoi(argv[1]);
-		// (Opcional) pode atualizar BLOCK_H/W aqui se quiser ler de argv[2] e argv[3]
-	}
+	
 
-	pthread_t tids[threads];
-	struct timespec t0, t1;
-
-	clock_gettime(CLOCK_MONOTONIC, &t0);
-
-	for (int t = 0; t < threads; t++) {
-		pthread_create(&tids[t], NULL, thread_func, NULL);
-	}
-	for (int t = 0; t < threads; t++) {
-		pthread_join(tids[t], NULL);
-	}
-
-	clock_gettime(CLOCK_MONOTONIC, &t1);
-	double tp = (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
-
-	printf("Paralelo: threads=%d, bloco=%dx%d → total_primos=%ld, tempo=%.6fs\n",
-		threads, BLOCK_H, BLOCK_W, total_primos, tp);
-
-
-
-
-	//alocar matrix
-	matrix = allocate_matrix();
-	insert_matrix(matrix);
 	
 	menu(matrix);	
 
