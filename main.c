@@ -10,18 +10,24 @@
 #include <math.h>
 #include <time.h>
 
+
 #define MAX_MATRIX_ROWS 10
 #define MAX_MATRIX_COLS 10
 #define SEED 42
 #define MAX_ROWS_MACROBLOCK 100
 #define MAX_COLS_MACROBLOCK 100
 
-// Função para gerar número aleatório entre 0 e 31999
+#define BLOCK_H    100      // altura do macrobloco (ajuste nos testes)
+#define BLOCK_W    100      // largura do macrobloco
+#define N_THREADS  8        // nÃºmero de threads padrÃ£o (serÃ¡ parÃ¢metro em main)
+
+
+// Funcao para gerar numero aleatorio entre 0 e 31999
 int randint() {
 	return rand() % 32000;
 }
 
-// Função para alocar matriz dinamicamente
+// Funcao para alocar matriz dinamicamente
 int** allocate_matrix() {
 	int** matrix = (int**)malloc(sizeof(int*) * MAX_MATRIX_ROWS);
 	if (matrix == NULL) {
@@ -70,10 +76,10 @@ void insert_matrix(int** matrix) {
 	}
 }
 
-//adicione tempo na função de busca
+//adicione tempo na funï¿½ï¿½o de busca
 
 void serial_search(int** matrix) {
-	double serial_start_time = (double)clock() / CLOCKS_PER_SEC; // Inicia o cronômetro
+	double serial_start_time = (double)clock() / CLOCKS_PER_SEC; // Inicia o cronï¿½metro
 	int cont_primos = 0;
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
 		for (int j = 0; j < MAX_MATRIX_COLS; j++) {
@@ -82,7 +88,7 @@ void serial_search(int** matrix) {
 			}
 		}
 	}
-	double serial_end_time = (double)clock() / CLOCKS_PER_SEC; // Para o cronômetro
+	double serial_end_time = (double)clock() / CLOCKS_PER_SEC; // Para o cronï¿½metro
 	printf("\n * * Matrix Size : %d x %d * *\n", MAX_MATRIX_COLS, MAX_MATRIX_ROWS);
 	printf("Busca serial concluida.\n");
 	printf("\nTempo de execucao serial: %.2f segundos\n", serial_end_time - serial_start_time);
@@ -174,14 +180,14 @@ void menu(int **matrix) {
 }
 
 int main(int argc, char* argv[]) {
-	srand(SEED); // Define a semente do gerador de números aleatórios
+	srand(SEED); // Define a semente do gerador de nï¿½meros aleatï¿½rios
 
 	int** matrix = allocate_matrix();
 	insert_matrix(matrix);
 	
 	menu(matrix);	
 
-	 //Libera a memória alocada
+	 //Libera a memï¿½ria alocada
 	for (int i = 0; i < MAX_MATRIX_ROWS; i++) {
 		free(matrix[i]);
 	}
