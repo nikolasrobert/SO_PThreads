@@ -17,6 +17,8 @@
 #define MAX_ROWS_MACROBLOCK 100
 #define MAX_COLS_MACROBLOCK 100
 
+
+//define paralelo
 #define BLOCK_H    100      // altura do macrobloco (ajuste nos testes)
 #define BLOCK_W    100      // largura do macrobloco
 #define N_THREADS  8        // número de threads padrão (será parâmetro em main)
@@ -43,6 +45,16 @@ int** allocate_matrix() {
 	}
 	return matrix;
 }
+
+
+//variáveis para paralelo
+
+int next_block = 0;
+long total_primos = 0;
+pthread_mutex_t mtx_block;
+pthread_mutex_t mtx_count;
+int total_blocks;
+int n_blocks_row, n_blocks_col;
 
 
 int ehPrimo(int number) {
@@ -180,6 +192,14 @@ void menu(int **matrix) {
 }
 
 int main(int argc, char* argv[]) {
+	// variaveis paralelo
+	n_blocks_row = (N_ROWS + BLOCK_H - 1) / BLOCK_H;
+	n_blocks_col = (N_COLS + BLOCK_W - 1) / BLOCK_W;
+	total_blocks = n_blocks_row * n_blocks_col;
+
+	pthread_mutex_init(&mtx_block, NULL);
+	pthread_mutex_init(&mtx_count, NULL);
+
 	srand(SEED); // Define a semente do gerador de n�meros aleat�rios
 
 	int** matrix = allocate_matrix();
